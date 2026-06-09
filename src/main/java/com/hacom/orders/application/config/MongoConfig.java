@@ -7,13 +7,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.mongodb.config.AbstractReactiveMongoConfiguration;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
 
 @Configuration
 @EnableReactiveMongoRepositories(basePackages = "com.hacom.orders.infrastructure.persistence")
-public class MongoConfig extends AbstractReactiveMongoConfiguration {
+public class MongoConfig {
 
     private static final Logger log = LoggerFactory.getLogger(MongoConfig.class);
 
@@ -23,12 +22,7 @@ public class MongoConfig extends AbstractReactiveMongoConfiguration {
     @Value("${mongodbDatabase}")
     private String mongodbDatabase;
 
-    @Override
-    protected String getDatabaseName() {
-        return mongodbDatabase;
-    }
-
-    @Override
+    @Bean
     public MongoClient reactiveMongoClient() {
         log.info("Configuring MongoDB client with URI: {} and database: {}", mongodbUri, mongodbDatabase);
         return MongoClients.create(mongodbUri);
@@ -37,6 +31,6 @@ public class MongoConfig extends AbstractReactiveMongoConfiguration {
     @Bean
     public ReactiveMongoTemplate reactiveMongoTemplate() {
         log.debug("Creating ReactiveMongoTemplate for database: {}", mongodbDatabase);
-        return new ReactiveMongoTemplate(reactiveMongoClient(), getDatabaseName());
+        return new ReactiveMongoTemplate(reactiveMongoClient(), mongodbDatabase);
     }
 }

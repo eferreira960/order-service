@@ -70,13 +70,13 @@ public class SmppSmsClient implements SmsSender, DisposableBean {
             config.setPort(port);
             config.setSystemId(systemId);
             config.setPassword(password);
-            config.setType(SmppConstants.TYPE_TRANSMITTER);
+            config.setType(com.cloudhopper.smpp.SmppBindType.TRANSMITTER);
             config.setBindTimeout(5000L);
             config.setConnectTimeout(5000L);
 
             session = client.bind(config);
 
-            log.info("Successfully connected to SMPP server, session ID: {}", session.getSessionId());
+            log.info("Successfully connected to SMPP server");
         } catch (Exception e) {
             log.error("Failed to connect to SMPP server: {}", e.getMessage());
             // Don't throw - allow app to start without SMPP for development

@@ -35,3 +35,6 @@ application-local.yml
 
 # Test output
 test-output/
+
+gradle/wrapper
+gradle-*

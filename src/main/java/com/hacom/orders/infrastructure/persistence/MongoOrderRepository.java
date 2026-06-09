@@ -37,7 +37,11 @@ public class MongoOrderRepository implements OrderRepository {
         Query query = new Query(Criteria.where("orderId").is(orderId));
         return reactiveMongoTemplate.findOne(query, Order.class)
                 .doOnNext(order -> log.debug("Found order: {}", order.getOrderId()))
-                .doOnComplete(() -> log.debug("No order found with orderId: {}", orderId));
+                .doFinally(signalType -> {
+                    if (signalType == reactor.core.publisher.SignalType.ON_COMPLETE) {
+                        log.debug("No order found with orderId: {}", orderId);
+                    }
+                });
     }
 
     @Override

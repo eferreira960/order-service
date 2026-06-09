@@ -18,18 +18,10 @@ public class TracingConfig {
 
     private static final Logger log = LoggerFactory.getLogger(TracingConfig.class);
 
-    @Autowired
-    private Tracer tracer;
-
-    @Bean
-    public Tracer tracer() {
-        return tracer;
-    }
-
     /**
      * Creates a new span for a given operation, setting the order ID as an attribute.
      */
-    public Span createOrderSpan(String operationName, String orderId) {
+    public Span createOrderSpan(Tracer tracer, String operationName, String orderId) {
         Span span = tracer.nextSpan().name(operationName);
         span.tag("order.id", orderId);
         span.start();
@@ -40,7 +32,7 @@ public class TracingConfig {
     /**
      * Creates a span for the SMS sending operation.
      */
-    public Span createSmsSpan(String destination) {
+    public Span createSmsSpan(Tracer tracer, String destination) {
         Span span = tracer.nextSpan().name("sendSms");
         span.tag("sms.destination", destination);
         span.start();

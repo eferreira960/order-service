@@ -1,0 +1,26 @@
+mongodbDatabase: testdb
+mongodbUri: mongodb://localhost:27017
+apiPort: 9898
+
+spring:
+  main:
+    web-application-type: reactive
+  data:
+    mongodb:
+      database: testdb
+      uri: mongodb://localhost:27017
+
+grpc:
+  server:
+    port: 0
+
+smpp:
+  host: localhost
+  port: 2775
+  system-id: test
+  password: test
+  source-ton: 5
+  source-npi: 0
+  source-address: TEST
+  dest-ton: 1
+  dest-npi: 1

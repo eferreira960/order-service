@@ -1,16 +1,11 @@
 package com.hacom.orders.domain.model;
 
-import com.hacom.orders.domain.event.DomainEvent;
-import com.hacom.orders.domain.event.OrderCreatedEvent;
-import com.hacom.orders.domain.event.OrderProcessedEvent;
-import com.hacom.orders.domain.event.SmsSentEvent;
 import com.hacom.orders.domain.model.vo.CustomerId;
 import com.hacom.orders.domain.model.vo.OrderId;
 import com.hacom.orders.domain.model.vo.OrderStatus;
 import com.hacom.orders.domain.model.vo.PhoneNumber;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.OffsetDateTime;
@@ -20,7 +15,7 @@ import java.util.List;
 
 /**
  * Aggregate Root for the Order bounded context.
- * Encapsulates all order-related business rules and domain events.
+ * Encapsulates all order-related business rules.
  */
 @Document(collection = "orders")
 public class Order {
@@ -28,15 +23,12 @@ public class Order {
     @Id
     private ObjectId _id;
 
-    private OrderId orderId;
-    private CustomerId customerId;
-    private PhoneNumber customerPhoneNumber;
-    private OrderStatus status;
+    private String orderId;
+    private String customerId;
+    private String customerPhoneNumber;
+    private String status;
     private List<String> items;
     private OffsetDateTime ts;
-
-    @Transient
-    private final List<DomainEvent> domainEvents = new ArrayList<>();
 
     // Required for Spring Data MongoDB
     protected Order() {
@@ -45,17 +37,16 @@ public class Order {
     private Order(OrderId orderId, CustomerId customerId, PhoneNumber customerPhoneNumber,
                   OrderStatus status, List<String> items, OffsetDateTime ts) {
         this._id = new ObjectId();
-        this.orderId = orderId;
-        this.customerId = customerId;
-        this.customerPhoneNumber = customerPhoneNumber;
-        this.status = status;
-        this.items = Collections.unmodifiableList(items);
+        this.orderId = orderId != null ? orderId.value() : null;
+        this.customerId = customerId != null ? customerId.value() : null;
+        this.customerPhoneNumber = customerPhoneNumber != null ? customerPhoneNumber.value() : null;
+        this.status = status != null ? status.getValue() : null;
+        this.items = items != null ? new ArrayList<>(items) : new ArrayList<>();
         this.ts = ts;
     }
 
     /**
      * Factory method to create a new Order aggregate.
-     * Validates business rules and records OrderCreatedEvent.
      */
     public static Order create(OrderId orderId, CustomerId customerId,
                                PhoneNumber customerPhoneNumber, List<String> items) {
@@ -63,7 +54,7 @@ public class Order {
             throw new IllegalArgumentException("Order must contain at least one item");
         }
 
-        Order order = new Order(
+        return new Order(
                 orderId,
                 customerId,
                 customerPhoneNumber,
@@ -71,65 +62,35 @@ public class Order {
                 items,
                 OffsetDateTime.now()
         );
-
-        order.domainEvents.add(new OrderCreatedEvent(orderId, customerId, customerPhoneNumber, items));
-        return order;
     }
 
     /**
      * Processes the order, transitioning from PENDING to PROCESSED.
-     * Records OrderProcessedEvent.
      */
-    public OrderProcessedEvent process() {
-        if (this.status != OrderStatus.PENDING) {
+    public void process() {
+        OrderStatus currentStatus = OrderStatus.fromValue(this.status);
+        if (currentStatus != OrderStatus.PENDING) {
             throw new IllegalStateException(
                     "Cannot process order " + orderId + ": current status is " + status);
         }
-
-        if (!this.status.canTransitionTo(OrderStatus.PROCESSED)) {
-            throw new IllegalStateException(
-                    "Invalid transition from " + this.status + " to " + OrderStatus.PROCESSED);
-        }
-
-        this.status = OrderStatus.PROCESSED;
+        this.status = OrderStatus.PROCESSED.getValue();
         this.ts = OffsetDateTime.now();
-
-        OrderProcessedEvent event = new OrderProcessedEvent(this.orderId, this.status);
-        this.domainEvents.add(event);
-        return event;
     }
 
     /**
      * Marks the order as failed.
      */
     public void fail() {
-        if (this.status.isTerminal()) {
+        OrderStatus currentStatus = OrderStatus.fromValue(this.status);
+        if (currentStatus.isTerminal()) {
             throw new IllegalStateException(
                     "Cannot fail order " + orderId + ": already in terminal state " + status);
         }
-        this.status = OrderStatus.FAILED;
+        this.status = OrderStatus.FAILED.getValue();
         this.ts = OffsetDateTime.now();
     }
 
-    /**
-     * Records that an SMS was sent for this order.
-     */
-    public SmsSentEvent recordSmsSent(PhoneNumber destination, String messageId) {
-        SmsSentEvent event = new SmsSentEvent(this.orderId, destination, messageId);
-        this.domainEvents.add(event);
-        return event;
-    }
-
-    /**
-     * Clears and returns all recorded domain events.
-     */
-    public List<DomainEvent> pullDomainEvents() {
-        List<DomainEvent> events = new ArrayList<>(this.domainEvents);
-        this.domainEvents.clear();
-        return events;
-    }
-
-    // Getters and Setters for MongoDB persistence
+    // Getters for MongoDB persistence
 
     public ObjectId get_id() {
         return _id;
@@ -140,35 +101,35 @@ public class Order {
     }
 
     public String getOrderId() {
-        return orderId != null ? orderId.value() : null;
+        return orderId;
     }
 
     public void setOrderId(String orderId) {
-        this.orderId = orderId != null ? new OrderId(orderId) : null;
+        this.orderId = orderId;
     }
 
     public String getCustomerId() {
-        return customerId != null ? customerId.value() : null;
+        return customerId;
     }
 
     public void setCustomerId(String customerId) {
-        this.customerId = customerId != null ? new CustomerId(customerId) : null;
+        this.customerId = customerId;
     }
 
     public String getCustomerPhoneNumber() {
-        return customerPhoneNumber != null ? customerPhoneNumber.value() : null;
+        return customerPhoneNumber;
     }
 
     public void setCustomerPhoneNumber(String customerPhoneNumber) {
-        this.customerPhoneNumber = customerPhoneNumber != null ? new PhoneNumber(customerPhoneNumber) : null;
+        this.customerPhoneNumber = customerPhoneNumber;
     }
 
     public String getStatus() {
-        return status != null ? status.getValue() : null;
+        return status;
     }
 
     public void setStatus(String status) {
-        this.status = status != null ? OrderStatus.fromValue(status) : null;
+        this.status = status;
     }
 
     public List<String> getItems() {
@@ -188,34 +149,31 @@ public class Order {
     }
 
     // Domain getters (return Value Objects)
+
     public OrderId getOrderIdVO() {
-        return orderId;
+        return orderId != null ? new OrderId(orderId) : null;
     }
 
     public CustomerId getCustomerIdVO() {
-        return customerId;
+        return customerId != null ? new CustomerId(customerId) : null;
     }
 
     public PhoneNumber getCustomerPhoneNumberVO() {
-        return customerPhoneNumber;
+        return customerPhoneNumber != null ? new PhoneNumber(customerPhoneNumber) : null;
     }
 
     public OrderStatus getOrderStatus() {
-        return status;
-    }
-
-    public List<DomainEvent> getDomainEvents() {
-        return Collections.unmodifiableList(domainEvents);
+        return status != null ? OrderStatus.fromValue(status) : null;
     }
 
     @Override
     public String toString() {
         return "Order{" +
                 "_id=" + _id +
-                ", orderId=" + orderId +
-                ", customerId=" + customerId +
-                ", customerPhoneNumber=" + customerPhoneNumber +
-                ", status=" + status +
+                ", orderId='" + orderId + '\'' +
+                ", customerId='" + customerId + '\'' +
+                ", customerPhoneNumber='" + customerPhoneNumber + '\'' +
+                ", status='" + status + '\'' +
                 ", items=" + items +
                 ", ts=" + ts +
                 '}';

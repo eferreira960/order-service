@@ -1,8 +1,6 @@
 package com.hacom.orders.infrastructure.actor;
 
 import akka.actor.UntypedAbstractActor;
-import akka.pattern.Patterns;
-import com.hacom.orders.application.config.TracingConfig;
 import com.hacom.orders.domain.model.Order;
 import com.hacom.orders.domain.model.vo.*;
 import com.hacom.orders.domain.port.OrderRepository;
@@ -20,13 +18,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import java.time.OffsetDateTime;
-import java.util.concurrent.CompletionStage;
-
 /**
  * Akka Classic Actor for processing orders.
- * Uses reactive streams (pipe pattern) instead of blocking .block() calls.
- * Integrates OpenTelemetry tracing and audit logging.
+ * Uses reactive streams and sends itself a message when save completes
+ * to avoid blocking the actor's thread.
  */
 @Component
 @Scope("prototype")
@@ -53,19 +48,17 @@ public class OrderProcessorActor extends UntypedAbstractActor {
         if (message instanceof ProcessOrderMessage) {
             ProcessOrderMessage msg = (ProcessOrderMessage) message;
             processOrderReactive(msg.getRequest(), msg.getResponseObserver());
-        } else if (message instanceof OrderSavedMessage) {
-            onOrderSaved((OrderSavedMessage) message);
         } else {
             unhandled(message);
         }
     }
 
     /**
-     * Reactive order processing: uses pipe() to avoid blocking.
+     * Reactive order processing: saves to MongoDB reactively and continues when done.
      */
     private void processOrderReactive(OrderRequest request, StreamObserver<OrderResponse> responseObserver) {
         String orderId = request.getOrderId();
-        log.info("Received order to process (reactive): orderId={}", orderId);
+        log.info("Received order to process: orderId={}", orderId);
 
         // Create trace span for the entire processing
         Span processingSpan = tracer.nextSpan().name("processOrder")
@@ -86,89 +79,63 @@ public class OrderProcessorActor extends UntypedAbstractActor {
 
             log.debug("Order aggregate created: {}", order);
 
-            // 2. Save to MongoDB reactively and pipe result back to self
-            CompletionStage<Order> saveFuture = orderRepository.save(order).toFuture();
-            CompletionStage<Object> pipedSave = saveFuture.thenApply(savedOrder ->
-                    new OrderSavedMessage(savedOrder, request, responseObserver)
+            // 2. Process the order (domain logic)
+            order.process();
+
+            // 3. Save to MongoDB reactively - subscribe and continue when done
+            orderRepository.save(order).subscribe(
+                    savedOrder -> {
+                        log.info("Order saved successfully: orderId={}", orderId);
+
+                        // Send SMS notification
+                        String smsMessage = "Your order " + orderId + " has been processed";
+                        try {
+                            smsSender.sendSms(request.getCustomerPhoneNumber(), smsMessage);
+                            log.info("SMS sent for order {}", orderId);
+                        } catch (Exception e) {
+                            log.error("Failed to send SMS for order {}: {}", orderId, e.getMessage());
+                        }
+
+                        // Save audit log (fire-and-forget)
+                        AuditLog auditLog = new AuditLog(
+                                orderId, "ORDER_PROCESSED", "OrderProcessorActor",
+                                "Order processed successfully", "SUCCESS",
+                                tracer.currentSpan() != null ? tracer.currentSpan().context().traceId() : null
+                        );
+                        auditLogRepository.save(auditLog).subscribe();
+
+                        // Respond to gRPC client
+                        OrderResponse response = OrderResponse.newBuilder()
+                                .setOrderId(orderId)
+                                .setStatus(order.getStatus())
+                                .build();
+
+                        responseObserver.onNext(response);
+                        responseObserver.onCompleted();
+
+                        log.info("Order processing completed for: {}", orderId);
+                    },
+                    error -> {
+                        log.error("Error saving order {}: {}", orderId, error.getMessage(), error);
+                        processingSpan.error(error);
+
+                        AuditLog auditLog = new AuditLog(
+                                orderId, "ORDER_FAILED", "OrderProcessorActor",
+                                "Error saving order: " + error.getMessage(), "FAILED",
+                                tracer.currentSpan() != null ? tracer.currentSpan().context().traceId() : null
+                        );
+                        auditLogRepository.save(auditLog).subscribe();
+
+                        respondWithError(request, responseObserver);
+                    }
             );
 
-            // Pipe the result back to this actor - NO .block()!
-            Patterns.pipe(pipedSave, getContext().dispatcher()).to(getSelf());
-
         } catch (Exception e) {
-            log.error("Error starting reactive processing for order {}: {}", orderId, e.getMessage(), e);
+            log.error("Error starting processing for order {}: {}", orderId, e.getMessage(), e);
             processingSpan.error(e);
             respondWithError(request, responseObserver);
         } finally {
             processingSpan.end();
-        }
-    }
-
-    /**
-     * Called when the order has been successfully saved to MongoDB.
-     */
-    private void onOrderSaved(OrderSavedMessage msg) {
-        Order order = msg.getOrder();
-        OrderRequest request = msg.getRequest();
-        StreamObserver<OrderResponse> responseObserver = msg.getResponseObserver();
-        String orderId = request.getOrderId();
-
-        Span smsSpan = tracer.nextSpan().name("sendSms")
-                .tag("order.id", orderId)
-                .tag("destination", request.getCustomerPhoneNumber())
-                .start();
-
-        try (var scope = tracer.withSpan(smsSpan)) {
-
-            // 3. Process the order (domain logic)
-            order.process();
-
-            log.info("Order processed successfully: orderId={}, status={}", orderId, order.getStatus());
-
-            // 4. Save audit log (non-blocking fire-and-forget)
-            AuditLog auditLog = new AuditLog(
-                    orderId, "ORDER_PROCESSED", "OrderProcessorActor",
-                    "Order processed successfully", "SUCCESS",
-                    tracer.currentSpan() != null ? tracer.currentSpan().context().traceId() : null
-            );
-            auditLogRepository.save(auditLog).subscribe();
-
-            // 5. Send SMS notification
-            String smsMessage = "Your order " + orderId + " has been processed";
-            try {
-                smsSender.sendSms(request.getCustomerPhoneNumber(), smsMessage);
-                log.info("SMS sent for order {}", orderId);
-
-                // Record SMS sent in domain events
-                order.recordSmsSent(new PhoneNumber(request.getCustomerPhoneNumber()), "N/A");
-
-            } catch (Exception e) {
-                log.error("Failed to send SMS for order {}: {}", orderId, e.getMessage());
-            }
-
-            // 6. Respond to gRPC client
-            OrderResponse response = OrderResponse.newBuilder()
-                    .setOrderId(orderId)
-                    .setStatus(order.getStatus())
-                    .build();
-
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
-
-            log.info("Order processing completed for: {}", orderId);
-
-        } catch (Exception e) {
-            log.error("Error during SMS/save phase for order {}: {}", orderId, e.getMessage(), e);
-            smsSpan.error(e);
-            AuditLog auditLog = new AuditLog(
-                    orderId, "ORDER_FAILED", "OrderProcessorActor",
-                    "Error processing order: " + e.getMessage(), "FAILED",
-                    tracer.currentSpan() != null ? tracer.currentSpan().context().traceId() : null
-            );
-            auditLogRepository.save(auditLog).subscribe();
-            respondWithError(request, responseObserver);
-        } finally {
-            smsSpan.end();
         }
     }
 

@@ -1,6 +1,7 @@
 package com.hacom.orders.infrastructure.rest;
 
-import com.hacom.orders.domain.model.Order;
+import com.hacom.orders.application.usecase.GetOrderStatusUseCase;
+import com.hacom.orders.domain.model.vo.OrderId;
 import com.hacom.orders.domain.port.OrderRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -25,9 +26,11 @@ public class OrderController {
 
     private static final Logger log = LoggerFactory.getLogger(OrderController.class);
 
+    private final GetOrderStatusUseCase getOrderStatusUseCase;
     private final OrderRepository orderRepository;
 
-    public OrderController(OrderRepository orderRepository) {
+    public OrderController(GetOrderStatusUseCase getOrderStatusUseCase, OrderRepository orderRepository) {
+        this.getOrderStatusUseCase = getOrderStatusUseCase;
         this.orderRepository = orderRepository;
     }
 
@@ -43,19 +46,22 @@ public class OrderController {
             @Parameter(description = "Order ID to query") @PathVariable String orderId) {
         log.info("REST request received - GET order status for orderId: {}", orderId);
 
-        return orderRepository.findByOrderId(orderId)
-                .map(order -> {
-                    log.debug("Order found: {} with status: {}", orderId, order.getStatus());
-                    return ResponseEntity.ok(Map.of(
-                            "orderId", order.getOrderId(),
-                            "status", order.getStatus(),
-                            "customerId", order.getCustomerId(),
-                            "customerPhoneNumber", order.getCustomerPhoneNumber(),
-                            "ts", order.getTs().toString()
-                    ));
-                })
+        return getOrderStatusUseCase.execute(new OrderId(orderId))
+                .map(result -> ResponseEntity.ok(Map.of(
+                        "orderId", result.orderId(),
+                        "status", result.status(),
+                        "customerId", result.customerId(),
+                        "customerPhoneNumber", result.customerPhoneNumber(),
+                        "ts", result.ts() != null ? result.ts() : ""
+                )))
                 .defaultIfEmpty(ResponseEntity.notFound().build())
-                .doOnError(error -> log.error("Error fetching order status for {}: {}", orderId, error.getMessage()));
+                .onErrorResume(e -> {
+                    log.error("Error fetching order status for {}: {}", orderId, e.getMessage());
+                    if (e instanceof IllegalArgumentException) {
+                        return Mono.just(ResponseEntity.badRequest().build());
+                    }
+                    return Mono.just(ResponseEntity.notFound().build());
+                });
     }
 
     @GetMapping("/count")
@@ -73,9 +79,9 @@ public class OrderController {
             OffsetDateTime toDate = OffsetDateTime.parse(to);
 
             return orderRepository.countByTsBetween(fromDate, toDate)
-                    .map(count -> {
+                    .<ResponseEntity<Map<String, Object>>>map(count -> {
                         log.debug("Found {} orders between {} and {}", count, from, to);
-                        return ResponseEntity.ok(Map.of(
+                        return ResponseEntity.ok(Map.<String, Object>of(
                                 "from", from,
                                 "to", to,
                                 "total", count
