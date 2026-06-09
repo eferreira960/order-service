@@ -87,55 +87,62 @@ public class OrderProcessorActor extends UntypedAbstractActor {
                     savedOrder -> {
                         log.info("Order saved successfully: orderId={}", orderId);
 
-                        // Send SMS notification
-                        String smsMessage = "Your order " + orderId + " has been processed";
                         try {
-                            smsSender.sendSms(request.getCustomerPhoneNumber(), smsMessage);
-                            log.info("SMS sent for order {}", orderId);
-                        } catch (Exception e) {
-                            log.error("Failed to send SMS for order {}: {}", orderId, e.getMessage());
+                            // Send SMS notification
+                            String smsMessage = "Your order " + orderId + " has been processed";
+                            try {
+                                smsSender.sendSms(request.getCustomerPhoneNumber(), smsMessage);
+                                log.info("SMS sent for order {}", orderId);
+                            } catch (Exception e) {
+                                log.error("Failed to send SMS for order {}: {}", orderId, e.getMessage());
+                            }
+
+                            // Save audit log (fire-and-forget)
+                            AuditLog auditLog = new AuditLog(
+                                    orderId, "ORDER_PROCESSED", "OrderProcessorActor",
+                                    "Order processed successfully", "SUCCESS",
+                                    tracer.currentSpan() != null ? tracer.currentSpan().context().traceId() : null
+                            );
+                            auditLogRepository.save(auditLog).subscribe();
+
+                            // Respond to gRPC client
+                            OrderResponse response = OrderResponse.newBuilder()
+                                    .setOrderId(orderId)
+                                    .setStatus(order.getStatus())
+                                    .build();
+
+                            responseObserver.onNext(response);
+                            responseObserver.onCompleted();
+
+                            log.info("Order processing completed for: {}", orderId);
+                        } finally {
+                            processingSpan.end();
                         }
-
-                        // Save audit log (fire-and-forget)
-                        AuditLog auditLog = new AuditLog(
-                                orderId, "ORDER_PROCESSED", "OrderProcessorActor",
-                                "Order processed successfully", "SUCCESS",
-                                tracer.currentSpan() != null ? tracer.currentSpan().context().traceId() : null
-                        );
-                        auditLogRepository.save(auditLog).subscribe();
-
-                        // Respond to gRPC client
-                        OrderResponse response = OrderResponse.newBuilder()
-                                .setOrderId(orderId)
-                                .setStatus(order.getStatus())
-                                .build();
-
-                        responseObserver.onNext(response);
-                        responseObserver.onCompleted();
-
-                        log.info("Order processing completed for: {}", orderId);
                     },
                     error -> {
-                        log.error("Error saving order {}: {}", orderId, error.getMessage(), error);
-                        processingSpan.error(error);
+                        try {
+                            log.error("Error saving order {}: {}", orderId, error.getMessage(), error);
+                            processingSpan.error(error);
 
-                        AuditLog auditLog = new AuditLog(
-                                orderId, "ORDER_FAILED", "OrderProcessorActor",
-                                "Error saving order: " + error.getMessage(), "FAILED",
-                                tracer.currentSpan() != null ? tracer.currentSpan().context().traceId() : null
-                        );
-                        auditLogRepository.save(auditLog).subscribe();
+                            AuditLog auditLog = new AuditLog(
+                                    orderId, "ORDER_FAILED", "OrderProcessorActor",
+                                    "Error saving order: " + error.getMessage(), "FAILED",
+                                    tracer.currentSpan() != null ? tracer.currentSpan().context().traceId() : null
+                            );
+                            auditLogRepository.save(auditLog).subscribe();
 
-                        respondWithError(request, responseObserver);
+                            respondWithError(request, responseObserver);
+                        } finally {
+                            processingSpan.end();
+                        }
                     }
             );
 
         } catch (Exception e) {
             log.error("Error starting processing for order {}: {}", orderId, e.getMessage(), e);
             processingSpan.error(e);
-            respondWithError(request, responseObserver);
-        } finally {
             processingSpan.end();
+            respondWithError(request, responseObserver);
         }
     }
 

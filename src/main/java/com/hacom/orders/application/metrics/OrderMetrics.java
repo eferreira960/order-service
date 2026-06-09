@@ -30,11 +30,11 @@ public class OrderMetrics {
 
     public void incrementProcessedOrders() {
         ordersProcessedCounter.increment();
-        log.debug("Orders processed counter incremented, current count: {:.0f}", ordersProcessedCounter.count());
+        log.debug("Orders processed counter incremented, current count: {}", ordersProcessedCounter.count());
     }
 
     public void incrementFailedOrders() {
         ordersFailedCounter.increment();
-        log.debug("Orders failed counter incremented, current count: {:.0f}", ordersFailedCounter.count());
+        log.debug("Orders failed counter incremented, current count: {}", ordersFailedCounter.count());
     }
 }

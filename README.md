@@ -27,15 +27,13 @@ com.hacom.orders
 │   └── metrics/        → Contadores personalizados de Prometheus
 ├── domain/             → Reglas de negocio de la empresa
 │   ├── model/          → Entidad Order
-│   ├── port/           → Interfaces de repositorio y envío de SMS
-│   └── service/        → Servicios de dominio (si son necesarios)
+│   └── port/           → Interfaces de repositorio y envío de SMS
 ├── infrastructure/     → Frameworks, drivers, herramientas externas
 │   ├── persistence/    → Implementación del repositorio reactivo MongoDB
 │   ├── grpc/           → Implementación del servicio gRPC
 │   ├── actor/          → Actor Akka Classic para procesamiento de órdenes
 │   ├── smpp/           → Cliente SMPP CloudHopper
 │   └── rest/           → Controladores de la API REST
-├── bootstrap/          → Punto de entrada de la aplicación Spring Boot
 └── shared/dto/         → DTOs compartidos (uso futuro)
 ```
 
@@ -207,7 +205,9 @@ curl "http://localhost:9898/api/orders/count?from=2024-01-01T00:00:00Z&to=2024-1
 
 // GET /api/orders/count?from=2024-01-01T00:00:00Z&to=2024-12-31T23:59:59Z
 {
-  "count": 42
+  "from": "2024-01-01T00:00:00Z",
+  "to": "2024-12-31T23:59:59Z",
+  "total": 5
 }
 ```
 
