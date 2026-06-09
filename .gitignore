@@ -1,0 +1,37 @@
+# Compiled Java class files
+*.class
+
+# Gradle build files
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Generated gRPC files
+src/generated/
+
+# IDE files
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+*.prefs
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Log files
+logs/
+*.log
+
+# Application specific
+application-local.yml
+
+# Test output
+test-output/

@@ -1,0 +1,62 @@
+Configuration:
+  status: warn
+
+  Properties:
+    Property:
+      name: log-path
+      value: "logs"
+
+  Appenders:
+    Console:
+      name: ConsoleAppender
+      target: SYSTEM_OUT
+      PatternLayout:
+        pattern: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"
+
+    RollingFile:
+      - name: FileAppender
+        fileName: ${log-path}/hacom-orders.log
+        filePattern: ${log-path}/hacom-orders-%d{yyyy-MM-dd}-%i.log.gz
+        PatternLayout:
+          pattern: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"
+        Policies:
+          SizeBasedTriggeringPolicy:
+            size: 10MB
+          TimeBasedTriggeringPolicy:
+            interval: 1
+            modulate: true
+        DefaultRolloverStrategy:
+          max: 10
+
+  Loggers:
+    Root:
+      level: info
+      AppenderRef:
+        - ref: ConsoleAppender
+        - ref: FileAppender
+
+    Logger:
+      - name: com.hacom.orders
+        level: debug
+        additivity: false
+        AppenderRef:
+          - ref: ConsoleAppender
+          - ref: FileAppender
+
+      - name: org.springframework
+        level: warn
+        additivity: false
+        AppenderRef:
+          - ref: ConsoleAppender
+
+      - name: org.mongodb
+        level: warn
+        additivity: false
+        AppenderRef:
+          - ref: ConsoleAppender
+
+      - name: io.grpc
+        level: info
+        additivity: false
+        AppenderRef:
+          - ref: ConsoleAppender

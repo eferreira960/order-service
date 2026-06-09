@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: hacom-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: exampleDb
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  smpp-server:
+    image: ghcr.io/fizzed/smppsim:latest
+    container_name: hacom-smppsim
+    ports:
+      - "2775:2775"
+    profiles:
+      - smpp
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: hacom-jaeger
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "4318:4318"     # OTLP HTTP
+      - "4317:4317"     # OTLP gRPC
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - LOG_LEVEL=debug
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hacom-orders-app
+    ports:
+      - "9898:9898"   # REST API / WebFlux
+      - "9090:9090"   # gRPC
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - mongodbUri=mongodb://mongodb:27017
+      - mongodbDatabase=exampleDb
+      - apiPort=9898
+      - smpp_host=smpp-server
+      - smpp_port=2775
+      - OTEL_ENDPOINT=http://jaeger:4318/v1/traces
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  mongodb-data:
