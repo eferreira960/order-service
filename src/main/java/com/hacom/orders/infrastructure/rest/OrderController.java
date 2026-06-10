@@ -16,7 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.Map;
 
 @RestController
@@ -75,8 +75,8 @@ public class OrderController {
         log.info("REST request received - GET order count from: {} to: {}", from, to);
 
         try {
-            OffsetDateTime fromDate = OffsetDateTime.parse(from);
-            OffsetDateTime toDate = OffsetDateTime.parse(to);
+            Instant fromDate = java.time.OffsetDateTime.parse(from).toInstant();
+            Instant toDate = java.time.OffsetDateTime.parse(to).toInstant();
 
             return orderRepository.countByTsBetween(fromDate, toDate)
                     .<ResponseEntity<Map<String, Object>>>map(count -> {

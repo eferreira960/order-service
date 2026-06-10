@@ -15,8 +15,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -75,8 +74,8 @@ public class MongoOrderRepositoryTest {
 
     @Test
     void testCountByTsBetween() {
-        OffsetDateTime from = OffsetDateTime.now(ZoneOffset.UTC).minusDays(3);
-        OffsetDateTime to = OffsetDateTime.now(ZoneOffset.UTC).plusDays(1);
+        Instant from = Instant.now().minusSeconds(3 * 86400);
+        Instant to = Instant.now().plusSeconds(86400);
 
         when(reactiveMongoTemplate.count(any(Query.class), eq(Order.class)))
                 .thenReturn(Mono.just(3L));

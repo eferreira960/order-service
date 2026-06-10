@@ -36,3 +36,4 @@ application-local.yml
 # Test output
 test-output/
 gradle-*
+grpcurl.exe

@@ -10,7 +10,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Mono;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 
 @Repository
 public class MongoOrderRepository implements OrderRepository {
@@ -45,7 +45,7 @@ public class MongoOrderRepository implements OrderRepository {
     }
 
     @Override
-    public Mono<Long> countByTsBetween(OffsetDateTime from, OffsetDateTime to) {
+    public Mono<Long> countByTsBetween(Instant from, Instant to) {
         log.debug("Counting orders between {} and {}", from, to);
         Query query = new Query(Criteria.where("ts").gte(from).lte(to));
         return reactiveMongoTemplate.count(query, Order.class)

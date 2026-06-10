@@ -14,8 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
-import java.time.OffsetDateTime;
-
+import java.time.Instant;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -42,7 +41,7 @@ public class OrderControllerTest {
         when(getOrderStatusUseCase.execute(new OrderId("ORD-001")))
                 .thenReturn(Mono.just(new GetOrderStatusUseCase.OrderResult(
                         "ORD-001", "PROCESSED", "CUST-001",
-                        "+584141234567", OffsetDateTime.now().toString()
+                        "+584141234567", Instant.now().toString()
                 )));
 
         webTestClient.get()
@@ -99,7 +98,7 @@ public class OrderControllerTest {
         when(getOrderStatusUseCase.execute(new OrderId("ORD-002")))
                 .thenReturn(Mono.just(new GetOrderStatusUseCase.OrderResult(
                         "ORD-002", "PROCESSED", "CUST-002",
-                        "+584147654321", OffsetDateTime.now().toString()
+                        "+584147654321", Instant.now().toString()
                 )));
 
         webTestClient.get()
@@ -117,7 +116,7 @@ public class OrderControllerTest {
         when(getOrderStatusUseCase.execute(new OrderId("ORD-003")))
                 .thenReturn(Mono.just(new GetOrderStatusUseCase.OrderResult(
                         "ORD-003", "FAILED", "CUST-003",
-                        "+584141112233", OffsetDateTime.now().toString()
+                        "+584141112233", Instant.now().toString()
                 )));
 
         webTestClient.get()
@@ -135,8 +134,8 @@ public class OrderControllerTest {
     void testGetOrderCountByDateRange() {
         String from = "2024-01-01T00:00:00Z";
         String to = "2024-12-31T23:59:59Z";
-        OffsetDateTime fromDate = OffsetDateTime.parse(from);
-        OffsetDateTime toDate = OffsetDateTime.parse(to);
+        Instant fromDate = java.time.OffsetDateTime.parse(from).toInstant();
+        Instant toDate = java.time.OffsetDateTime.parse(to).toInstant();
 
         when(orderRepository.countByTsBetween(fromDate, toDate)).thenReturn(Mono.just(5L));
 
@@ -160,8 +159,8 @@ public class OrderControllerTest {
     void testGetOrderCountByDateRange_ZeroCount() {
         String from = "2023-01-01T00:00:00Z";
         String to = "2023-01-02T00:00:00Z";
-        OffsetDateTime fromDate = OffsetDateTime.parse(from);
-        OffsetDateTime toDate = OffsetDateTime.parse(to);
+        Instant fromDate = java.time.OffsetDateTime.parse(from).toInstant();
+        Instant toDate = java.time.OffsetDateTime.parse(to).toInstant();
 
         when(orderRepository.countByTsBetween(fromDate, toDate)).thenReturn(Mono.just(0L));
 

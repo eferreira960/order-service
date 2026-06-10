@@ -8,7 +8,7 @@ import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -24,13 +24,13 @@ public class Order {
     private String customerPhoneNumber;
     private String status;
     private List<String> items;
-    private OffsetDateTime ts;
+    private Instant ts;
 
     protected Order() {
     }
 
     private Order(OrderId orderId, CustomerId customerId, PhoneNumber customerPhoneNumber,
-                  OrderStatus status, List<String> items, OffsetDateTime ts) {
+                  OrderStatus status, List<String> items, Instant ts) {
         this._id = new ObjectId();
         this.orderId = orderId != null ? orderId.value() : null;
         this.customerId = customerId != null ? customerId.value() : null;
@@ -52,7 +52,7 @@ public class Order {
                 customerPhoneNumber,
                 OrderStatus.PENDING,
                 items,
-                OffsetDateTime.now()
+                Instant.now()
         );
     }
 
@@ -63,7 +63,7 @@ public class Order {
                     "Cannot process order " + orderId + ": current status is " + status);
         }
         this.status = OrderStatus.PROCESSED.getValue();
-        this.ts = OffsetDateTime.now();
+        this.ts = Instant.now();
     }
 
     public void fail() {
@@ -73,7 +73,7 @@ public class Order {
                     "Cannot fail order " + orderId + ": already in terminal state " + status);
         }
         this.status = OrderStatus.FAILED.getValue();
-        this.ts = OffsetDateTime.now();
+        this.ts = Instant.now();
     }
 
     public ObjectId get_id() {
@@ -124,11 +124,11 @@ public class Order {
         this.items = items;
     }
 
-    public OffsetDateTime getTs() {
+    public Instant getTs() {
         return ts;
     }
 
-    public void setTs(OffsetDateTime ts) {
+    public void setTs(Instant ts) {
         this.ts = ts;
     }
 
