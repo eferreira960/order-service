@@ -18,11 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-/**
- * Akka Classic Actor for processing orders.
- * Uses reactive streams and sends itself a message when save completes
- * to avoid blocking the actor's thread.
- */
 @Component
 @Scope("prototype")
 public class OrderProcessorActor extends UntypedAbstractActor {
@@ -53,14 +48,10 @@ public class OrderProcessorActor extends UntypedAbstractActor {
         }
     }
 
-    /**
-     * Reactive order processing: saves to MongoDB reactively and continues when done.
-     */
     private void processOrderReactive(OrderRequest request, StreamObserver<OrderResponse> responseObserver) {
         String orderId = request.getOrderId();
         log.info("Received order to process: orderId={}", orderId);
 
-        // Create trace span for the entire processing
         Span processingSpan = tracer.nextSpan().name("processOrder")
                 .tag("order.id", orderId)
                 .tag("customer.id", request.getCustomerId())
@@ -69,7 +60,6 @@ public class OrderProcessorActor extends UntypedAbstractActor {
 
         try (var scope = tracer.withSpan(processingSpan)) {
 
-            // 1. Create domain Order using the Aggregate Root factory
             Order order = Order.create(
                     new OrderId(orderId),
                     new CustomerId(request.getCustomerId()),
@@ -79,16 +69,13 @@ public class OrderProcessorActor extends UntypedAbstractActor {
 
             log.debug("Order aggregate created: {}", order);
 
-            // 2. Process the order (domain logic)
             order.process();
 
-            // 3. Save to MongoDB reactively - subscribe and continue when done
             orderRepository.save(order).subscribe(
                     savedOrder -> {
                         log.info("Order saved successfully: orderId={}", orderId);
 
                         try {
-                            // Send SMS notification
                             String smsMessage = "Your order " + orderId + " has been processed";
                             try {
                                 smsSender.sendSms(request.getCustomerPhoneNumber(), smsMessage);
@@ -97,7 +84,6 @@ public class OrderProcessorActor extends UntypedAbstractActor {
                                 log.error("Failed to send SMS for order {}: {}", orderId, e.getMessage());
                             }
 
-                            // Save audit log (fire-and-forget)
                             AuditLog auditLog = new AuditLog(
                                     orderId, "ORDER_PROCESSED", "OrderProcessorActor",
                                     "Order processed successfully", "SUCCESS",
@@ -105,7 +91,6 @@ public class OrderProcessorActor extends UntypedAbstractActor {
                             );
                             auditLogRepository.save(auditLog).subscribe();
 
-                            // Respond to gRPC client
                             OrderResponse response = OrderResponse.newBuilder()
                                     .setOrderId(orderId)
                                     .setStatus(order.getStatus())
@@ -155,9 +140,6 @@ public class OrderProcessorActor extends UntypedAbstractActor {
         responseObserver.onCompleted();
     }
 
-    /**
-     * Message class for order processing requests.
-     */
     public static class ProcessOrderMessage {
         private final OrderRequest request;
         private final StreamObserver<OrderResponse> responseObserver;

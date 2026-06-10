@@ -2,9 +2,6 @@ package com.hacom.orders.domain.model.vo;
 
 import java.util.Objects;
 
-/**
- * Value Object for Customer ID with validation.
- */
 public record CustomerId(String value) {
 
     public CustomerId {

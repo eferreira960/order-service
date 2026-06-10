@@ -13,10 +13,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Aggregate Root for the Order bounded context.
- * Encapsulates all order-related business rules.
- */
 @Document(collection = "orders")
 public class Order {
 
@@ -30,7 +26,6 @@ public class Order {
     private List<String> items;
     private OffsetDateTime ts;
 
-    // Required for Spring Data MongoDB
     protected Order() {
     }
 
@@ -45,9 +40,6 @@ public class Order {
         this.ts = ts;
     }
 
-    /**
-     * Factory method to create a new Order aggregate.
-     */
     public static Order create(OrderId orderId, CustomerId customerId,
                                PhoneNumber customerPhoneNumber, List<String> items) {
         if (items == null || items.isEmpty()) {
@@ -64,9 +56,6 @@ public class Order {
         );
     }
 
-    /**
-     * Processes the order, transitioning from PENDING to PROCESSED.
-     */
     public void process() {
         OrderStatus currentStatus = OrderStatus.fromValue(this.status);
         if (currentStatus != OrderStatus.PENDING) {
@@ -77,9 +66,6 @@ public class Order {
         this.ts = OffsetDateTime.now();
     }
 
-    /**
-     * Marks the order as failed.
-     */
     public void fail() {
         OrderStatus currentStatus = OrderStatus.fromValue(this.status);
         if (currentStatus.isTerminal()) {
@@ -89,8 +75,6 @@ public class Order {
         this.status = OrderStatus.FAILED.getValue();
         this.ts = OffsetDateTime.now();
     }
-
-    // Getters for MongoDB persistence
 
     public ObjectId get_id() {
         return _id;

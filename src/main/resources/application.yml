@@ -1,20 +1,16 @@
-# Custom variables for MongoDB and WebFlux configuration
-mongodbDatabase: exampleDb
+mongodbDatabase: orders
 mongodbUri: "mongodb://127.0.0.1:27017"
 apiPort: 9898
 
-# Server configuration (will be overridden programmatically)
 server:
   port: ${apiPort}
 
-# MongoDB configuration (will be configured programmatically, not using spring.data.mongodb.uri)
 spring:
   main:
     web-application-type: reactive
   codec:
     max-in-memory-size: 16MB
 
-# Actuator configuration
 management:
   endpoints:
     web:
@@ -37,7 +33,6 @@ management:
     propagation:
       type: w3c
 
-# OpenTelemetry / Tracing exporter
 otel:
   traces:
     exporter: otlp
@@ -48,7 +43,6 @@ otel:
   service:
     name: hacom-orders-service
 
-# gRPC server configuration
 grpc:
   server:
     port: 9090
@@ -56,7 +50,7 @@ grpc:
     keepalive-time: 30s
     keepalive-timeout: 5s
     security:
-      enabled: false   # Enable for mTLS in production
+      enabled: false 
       # certificate-chain: classpath:certs/server.crt
       # private-key: classpath:certs/server.pem
       # trust-cert-collection: classpath:certs/ca.crt
@@ -75,7 +69,6 @@ smpp:
   dest-ton: 1
   dest-npi: 1
 
-# OpenAPI / Swagger configuration
 springdoc:
   api-docs:
     path: /api-docs
@@ -83,11 +76,9 @@ springdoc:
     path: /swagger-ui.html
     operationsSorter: method
 
-# Logging configuration (Log4j2)
 logging:
   config: classpath:log4j2.yml
 
-# Resilience4j configuration
 resilience4j:
   ratelimiter:
     configs:

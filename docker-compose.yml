@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: hacom-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - hacom-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hacom-orders-app
+    ports:
+      - "9898:9898"
+      - "9090:9090"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - mongodbUri=mongodb://mongodb:27017
+      - mongodbDatabase=exampleDb
+      - apiPort=9898
+      - OTEL_ENDPOINT=http://otel-collector:4318/v1/traces
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9898/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    networks:
+      - hacom-network
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.96.0
+    container_name: hacom-otel-collector
+    ports:
+      - "4317:4317"   
+      - "4318:4318"   
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    profiles:
+      - tracing
+    networks:
+      - hacom-network
+
+  smppsim:
+    image: docker.io/hacom-smpp-simulator:latest
+    container_name: hacom-smpp-simulator
+    ports:
+      - "2775:2775"
+    profiles:
+      - smpp
+    networks:
+      - hacom-network
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  hacom-network:
+    driver: bridge

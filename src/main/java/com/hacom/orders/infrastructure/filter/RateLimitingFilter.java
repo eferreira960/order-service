@@ -16,9 +16,6 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 
-/**
- * WebFilter for rate limiting based on client IP.
- */
 @Component
 public class RateLimitingFilter implements WebFilter {
 

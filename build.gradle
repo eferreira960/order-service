@@ -38,23 +38,18 @@ dependencyManagement {
 }
 
 dependencies {
-    // Spring Boot Starters
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
     implementation 'org.springframework.boot:spring-boot-starter-data-mongodb-reactive'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-aop'
 
-    // Log4j2 (excluyendo Logback)
     implementation 'org.springframework.boot:spring-boot-starter-log4j2'
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
 
-    // Prometheus Metrics
     implementation 'io.micrometer:micrometer-registry-prometheus'
 
-    // Swagger / OpenAPI
     implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.5.0'
 
-    // gRPC
     implementation 'net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE'
     implementation 'io.grpc:grpc-protobuf:1.63.0'
     implementation 'io.grpc:grpc-stub:1.63.0'
@@ -62,28 +57,22 @@ dependencies {
     implementation 'javax.annotation:javax.annotation-api:1.3.2'
     implementation 'com.google.protobuf:protobuf-java:3.25.3'
 
-    // Akka Classic Actors
     implementation 'com.typesafe.akka:akka-actor_2.13:2.8.5'
 
-    // SMPP CloudHopper
     implementation 'com.cloudhopper:ch-smpp:5.0.9'
 
-    // Resilience4j (Rate Limiting + Circuit Breaker + Retry)
     implementation "io.github.resilience4j:resilience4j-spring-boot3:${resilience4jVersion}"
     implementation "io.github.resilience4j:resilience4j-reactor:${resilience4jVersion}"
-    implementation "io.github.resilience4j:resilience4j-micrometer:${resilience4jVersion}"
+    implementation 'io.reactivex.rxjava3:rxjava:3.1.8'
 
-    // OpenTelemetry / Micrometer Tracing
     implementation 'io.micrometer:micrometer-tracing'
     implementation 'io.micrometer:micrometer-tracing-bridge-otel'
     implementation 'io.opentelemetry:opentelemetry-exporter-otlp:1.36.0'
     implementation 'io.opentelemetry:opentelemetry-sdk-extension-autoconfigure:1.36.0'
 
-    // Lombok (opcional para reducir boilerplate)
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
-    // Tests
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'io.projectreactor:reactor-test'
     testImplementation 'de.flapdoodle.embed:de.flapdoodle.embed.mongo:4.14.0'
@@ -107,7 +96,6 @@ protobuf {
             grpc {}
         }
     }
-    // Let the protobuf plugin use its default generated files location
 }
 
 sourceSets {

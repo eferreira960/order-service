@@ -5,9 +5,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.OffsetDateTime;
 
-/**
- * Audit log entry persisted to MongoDB for every action in the system.
- */
 @Document(collection = "audit_logs")
 public class AuditLog {
 

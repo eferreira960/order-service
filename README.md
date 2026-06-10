@@ -1,21 +1,4 @@
 # Orders Processing Backend
-
-Backend reactivo con Spring Boot para procesamiento de órdenes, utilizando MongoDB, gRPC, Akka Classic Actors, integración SMPP para el envio de mensajes y métricas con Prometheus.
-
-## Tecnologías Utilizadas
-
-- **Java 17** - Lenguaje
-- **Spring Boot 3.2.5** con **Spring WebFlux** - API REST reactiva
-- **Spring Data MongoDB Reactive** - Acceso reactivo a MongoDB
-- **gRPC** - Comunicación entre servicios para creación de órdenes
-- **Akka Classic Actors** - Procesamiento asíncrono de órdenes
-- **CloudHopper SMPP** - Envío de SMS vía protocolo SMPP
-- **Log4j2** con configuración YAML - Logging
-- **Spring Actuator** con **Micrometer Prometheus** - Métricas
-- **SpringDoc OpenAPI (Swagger)** - Documentación de API
-- **GitHub Actions** - Pipeline CI/CD
-- **Gradle 8.7** - Herramienta de compilación
-
 ## Arquitectura
 
 El proyecto sigue los principios de **Arquitectura Limpia (Clean Architecture)** con tres capas:
@@ -134,28 +117,6 @@ Docker Compose orquesta todos los servicios necesarios (MongoDB, la aplicación 
 | `app` | `hacom-orders-backend` (build local) | `9898:9898` (REST), `9090:9090` (gRPC) | Aplicación Spring Boot |
 | `smppsim` | `hacom-smpp-simulator` (perfil smpp) | `2775` | Simulador SMSC SMPP (opcional) |
 
-#### Comandos básicos
-
-```bash
-# Compilar y arrancar todos los servicios (MongoDB + App)
-docker-compose up --build
-
-# Ejecutar en segundo plano (modo detached)
-docker-compose up --build -d
-
-# Incluir el simulador SMPP
-docker-compose --profile smpp up --build
-
-# Detener todos los servicios
-docker-compose down
-
-# Ver logs de la aplicación
-docker-compose logs -f app
-
-# Ver logs de todos los servicios
-docker-compose logs -f
-```
-
 #### Compilar y ejecutar manualmente con Docker
 
 ```bash
@@ -256,12 +217,10 @@ Desde Swagger UI puedes probar los endpoints REST directamente desde el navegado
 
 ### 4. Endpoints de Actuator (Monitoreo)
 
-| Endpoint | Descripción |
-|----------|-------------|
-| `/actuator/health` | Health check |
-| `/actuator/info` | Información de la aplicación |
-| `/actuator/metrics` | Métricas de la aplicación |
-| `/actuator/prometheus` | Métricas formato Prometheus |
+ `/actuator/health`  Health check 
+ `/actuator/info` Información de la aplicación 
+ `/actuator/metrics`  Métricas de la aplicación 
+`/actuator/prometheus`  Métricas formato Prometheus 
 
 ```bash
 # Verificar salud de la aplicación
@@ -287,13 +246,11 @@ http://localhost:9898/actuator/prometheus
 
 ```bash
 # Ejecutar todas las pruebas
-./gradlew test
+./gradlew clean test --info 
 
 # Ejecutar una clase de prueba específica
 ./gradlew test --tests "*OrderControllerTest"
 
-# Ejecutar pruebas con reporte de cobertura (si está configurado JaCoCo)
-./gradlew test jacocoTestReport
 ```
 
 Las pruebas utilizan:

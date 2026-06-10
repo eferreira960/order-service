@@ -2,9 +2,6 @@ package com.hacom.orders.domain.model.vo;
 
 import java.util.Objects;
 
-/**
- * Value Object for Phone Number with E.164 validation.
- */
 public record PhoneNumber(String value) {
 
     public PhoneNumber {

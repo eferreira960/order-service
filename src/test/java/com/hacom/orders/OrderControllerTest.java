@@ -36,8 +36,6 @@ public class OrderControllerTest {
     void setUp() {
     }
 
-    // ─── GET /api/orders/{orderId}/status ───────────────────────
-
     @Test
     @DisplayName("GET /api/orders/{orderId}/status - Order exists returns 200")
     void testGetOrderStatus_Found() {
@@ -131,8 +129,6 @@ public class OrderControllerTest {
                 .jsonPath("$.status").isEqualTo("FAILED")
                 .jsonPath("$.orderId").isEqualTo("ORD-003");
     }
-
-    // ─── GET /api/orders/count ──────────────────────────────────
 
     @Test
     @DisplayName("GET /api/orders/count - Valid date range returns count")

@@ -1,8 +1,5 @@
 package com.hacom.orders.domain.model.vo;
 
-/**
- * Value Object for Order Status as an enum with domain behavior.
- */
 public enum OrderStatus {
     PENDING("PENDING"),
     PROCESSED("PROCESSED"),

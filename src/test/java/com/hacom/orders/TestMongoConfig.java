@@ -10,10 +10,6 @@ import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.List;
 
-/**
- * Test configuration for Mongo slice tests.
- * Registers JSR-310 converters for OffsetDateTime (flapdoodle doesn't register them automatically).
- */
 @Configuration
 public class TestMongoConfig {
 

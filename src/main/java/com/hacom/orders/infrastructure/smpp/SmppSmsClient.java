@@ -79,7 +79,6 @@ public class SmppSmsClient implements SmsSender, DisposableBean {
             log.info("Successfully connected to SMPP server");
         } catch (Exception e) {
             log.error("Failed to connect to SMPP server: {}", e.getMessage());
-            // Don't throw - allow app to start without SMPP for development
         }
     }
 
